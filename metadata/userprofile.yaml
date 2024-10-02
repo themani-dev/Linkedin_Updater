@@ -1,0 +1,22 @@
+name: Manikanta Reddy Kallam
+title: Senior Data Engineer
+experience:
+  job_1:
+    title: Senior Data Engineer
+    employment_type: Contract
+    company_name: Tesla
+    location: California
+    location_type: Remote
+    currently_working: false
+    start_month: January
+    start_year: 2024
+    end_month: October
+    end_year: 2024
+    Description: Test for Automation script
+    skills:
+      - Python
+      - SQL Server
+      - Amazon Web Services
+      - Google Cloud Platform
+      - Data Build Tool
+      - Tableau
