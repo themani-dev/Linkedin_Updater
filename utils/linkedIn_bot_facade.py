@@ -1,4 +1,5 @@
 class LinkedInBotState:
+
     def __init__(self):
         self.reset()
 
@@ -16,13 +17,13 @@ class LinkedInBotState:
                 raise ValueError(f"{key.replace('_', ' ').capitalize()} must be set before proceeding.")
 
 class LinkedInBotFacade:
+
     def __init__(self, login_component):
         self.login_component = login_component
         self.state = LinkedInBotState()
         self.email = None
         self.password = None
         self.parameters = None
-
 
     def set_secrets(self, email, password):
         self._validate_non_empty(email, "Email")
@@ -34,7 +35,6 @@ class LinkedInBotFacade:
     def set_parameters(self, parameters):
         self._validate_non_empty(parameters, "Parameters")
         self.parameters = parameters
-        self.apply_component.set_parameters(parameters)
         self.state.parameters_set = True
 
     def start_login(self):
@@ -43,6 +43,8 @@ class LinkedInBotFacade:
         self.login_component.start()
         self.state.logged_in = True
 
+    def profile_update(self):
+        self.login_component.handle_user_profile(self.parameters)
 
     def _validate_non_empty(self, value, name):
         if not value:

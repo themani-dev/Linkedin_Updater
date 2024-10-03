@@ -22,6 +22,34 @@ class LinkedInAuthenticator:
         if not self.is_logged_in():
             self.handle_login()
 
+    def handle_user_profile(self,parameters):
+        profileURL = parameters['userProfileLink']
+        self.driver.get(profileURL)
+        time.sleep(10)
+        self.handle_experience_component(parameters['experience'])
+
+    def handle_experience_component(self,experience):
+        try:
+            print(self.driver.title)
+            time.sleep(20)
+            addButton = self.driver.find_element(By.ID,'overflow-Add-new-experience')
+            addButton.click()
+            submenu = WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located((By.ID, "submenu_id"))  # Replace with actual submenu locator
+                )
+            # Step 3: Find all submenu items and print their IDs
+            submenu_items = submenu.find_elements(By.TAG_NAME, "li")  # or use "a", "div" depending on the structure
+
+            # Step 4: Loop through the items and print their IDs (if present)
+            for item in submenu_items:
+                item_id = item.get_attribute("id")
+                if item_id:  # Only print if there's an ID
+                    print("Submenu item ID:", item_id)
+        except NoSuchElementException:
+            print("Add button not found. Please verify the page structure.")
+        pass
+
+
     def handle_login(self):
         print("Navigating to the LinkedIn login page...")
         self.driver.get("https://www.linkedin.com/login")
@@ -34,7 +62,8 @@ class LinkedInAuthenticator:
         except NoSuchElementException:
             print("Could not log in to LinkedIn. Please check your credentials.")
         time.sleep(35) #TODO fix better
-        self.handle_security_check()
+        if 'challenge' in self.driver.current_url:
+            self.handle_security_check()
 
     def enter_credentials(self):
         try:

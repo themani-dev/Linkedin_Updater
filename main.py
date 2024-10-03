@@ -1,10 +1,7 @@
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import WebDriverException, TimeoutException
+from selenium.common.exceptions import WebDriverException
 from fake_useragent import UserAgent
-import pandas as pd
 from selenium.webdriver.chrome.service import Service
 import yaml
 from pathlib import Path
@@ -35,7 +32,6 @@ class ConfigValidator:
     
     def validate_config(config_yaml_path):
         parameters = ConfigValidator.validate_yaml_file(config_yaml_path)
-        print(parameters['experience'].keys())
         required_keys = {
             'title': str,
             'company_name': str,
@@ -43,21 +39,24 @@ class ConfigValidator:
             'start_year': int,
             'end_month': str,
             'end_year': int,
-            'current_working': bool,
+            'currently_working': bool,
+            # 'userProfileLink': str,
         }
 
-        for key, expected_type in required_keys.items():
-            if key not in parameters:
-                if key in ['companyBlacklist', 'titleBlacklist']:
-                    parameters[key] = []
-                else:
-                    raise ConfigError(f"Missing or invalid key '{key}' in config file {config_yaml_path}")
-            elif not isinstance(parameters[key], expected_type):
-                if key in ['companyBlacklist', 'titleBlacklist'] and parameters[key] is None:
-                    parameters[key] = []
-                else:
-                    raise ConfigError(f"Invalid type for key '{key}' in config file {config_yaml_path}. Expected {expected_type}.")
 
+        for item in parameters['experience']:
+            exp = parameters['experience'][item]
+            for key, expected_type in required_keys.items():
+                if key not in exp:
+                    if key in ['companyBlacklist', 'titleBlacklist']:
+                        exp[key] = []
+                    else:
+                        raise ConfigError(f"Missing or invalid key '{key}' in config file {config_yaml_path}")
+                elif not isinstance(exp[key], expected_type):
+                    if key in ['companyBlacklist', 'titleBlacklist'] and exp[key] is None:
+                        exp[key] = []
+                    else:
+                        raise ConfigError(f"Invalid type for key '{key}' in config file {config_yaml_path}. Expected {expected_type}.")
         return parameters
 
     @staticmethod
@@ -65,16 +64,18 @@ class ConfigValidator:
         secrets = ConfigValidator.validate_yaml_file(secrets_yaml_path)
         mandatory_secrets = ['email', 'password']
 
-        for secret in mandatory_secrets:
-            if secret not in secrets:
-                raise ConfigError(f"Missing secret '{secret}' in file {secrets_yaml_path}")
+        for item in secrets:
+            service = secrets[item]
+            for secret in mandatory_secrets:
+                if secret not in service:
+                    raise ConfigError(f"Missing secret '{secret}' in file {secrets_yaml_path}")
 
-        if not ConfigValidator.validate_email(secrets['email']):
-            raise ConfigError(f"Invalid email format in secrets file {secrets_yaml_path}.")
-        if not secrets['password']:
-            raise ConfigError(f"Password cannot be empty in secrets file {secrets_yaml_path}.")
+            if not ConfigValidator.validate_email(service['email']):
+                raise ConfigError(f"Invalid email format in secrets file {secrets_yaml_path}.")
+            if not service['password']:
+                raise ConfigError(f"Password cannot be empty in secrets file {secrets_yaml_path}.")
 
-        return secrets['email'], str(secrets['password'])
+        return secrets
 
 class FileManager:
     @staticmethod
@@ -112,13 +113,15 @@ def init_browser():
     except Exception as e:
         raise RuntimeError(f"Failed to initialize browser: {str(e)}")
 
-def run_bot(email,password):
+def run_linkedin_bot(email,password,parameters):
     try:
         browser = init_browser()
         login_component = LinkedInAuthenticator(browser)
         bot = LinkedInBotFacade(login_component)
         bot.set_secrets(email, password)
+        bot.set_parameters(parameters)
         bot.start_login()
+        bot.profile_update()
     except WebDriverException as e:
         print(f"WebDriver error occurred: {e}")
     except Exception as e:
@@ -133,9 +136,9 @@ def main(resume):
         secrets_file, config_file = FileManager.validate_data_folder(data_folder)
         
         parameters = ConfigValidator.validate_config(config_file)
-        email, password = ConfigValidator.validate_secrets(secrets_file)
+        service = ConfigValidator.validate_secrets(secrets_file)
 
-        # run_bot(email, password, parameters)
+        run_linkedin_bot(service['LinkedIn']['email'], service['LinkedIn']['password'], parameters)
     except ConfigError as ce:
         print(f"Configuration error: {str(ce)}")
         print("Refer to the configuration guide for troubleshooting: https://github.com/feder-cr/LinkedIn_AIHawk_automatic_job_application/blob/main/readme.md#configuration")
